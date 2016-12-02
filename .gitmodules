@@ -1,0 +1,4 @@
+[submodule "fork"]
+	path = fork
+	url = https://github.com/libertine-linux-forks/audit-userspace.git
+	branch = musl-fixes

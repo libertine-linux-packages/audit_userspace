@@ -1,0 +1,285 @@
+# This file is part of libertine linux's package audit_userspace. It is subject to the licence terms in the COPYRIGHT file found in the top-level directory of this distribution and at https://raw.githubusercontent.com/libertine-linux-packages/audit_userspace/master/COPYRIGHT. No part of libertine linux's package audit_userspace, including this file, may be copied, modified, propagated, or distributed except according to the terms contained in the COPYRIGHT file.
+# Copyright © 2016 The developers of libertine linux's package audit_userspace. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/libertine-linux-packages/audit_userspace/master/COPYRIGHT.
+
+
+case "$package" in
+
+	audit_userspace_daemon)
+		
+		variant=empty
+	
+		depends audit_userspace_libaudit
+	
+		depends build_musl_cross_make_host
+		build_needs "$libertine_host"-strip
+		
+		build_needs mkdir
+		libertine_compile_audit_userspace_daemon()
+		{
+			local destinationFolderPath="$(libertine_public_outputInitramfsPath)"/usr/sbin
+			mkdir -m 0755 -p "$destinationFolderPath"
+
+			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/auditd "$destinationFolderPath"/
+			"$libertine_host"-strip "$destinationFolderPath"/auditd
+			
+			# auditspd and audisp-remote are not used at this time
+		}
+	
+	;;
+	
+	audit_userspace_trace)
+		
+		variant=empty
+
+		depends audit_userspace_libaudit
+		
+		depends build_musl_cross_make_host
+		build_needs "$libertine_host"-strip
+		
+		build_needs mkdir
+		libertine_compile_audit_userspace_trace()
+		{
+			local destinationFolderPath="$(libertine_public_outputInitramfsPath)"/usr/sbin
+			mkdir -m 0755 -p "$destinationFolderPath"
+			
+			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/autrace "$destinationFolderPath"/
+			"$libertine_host"-strip "$destinationFolderPath"/autrace
+		}
+	;;
+	
+	audit_userspace_utilities)
+	
+		variant=empty
+
+		depends audit_userspace_libaudit
+		
+		depends build_musl_cross_make_host
+		build_needs "$libertine_host"-strip
+		
+		build_needs mkdir
+		libertine_compile_audit_userspace_utilities()
+		{
+			local destinationFolderPath="$(libertine_public_outputInitramfsPath)"/usr/bin
+			mkdir -m 0755 -p "$destinationFolderPath"
+			
+			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/bin/. "$destinationFolderPath"/
+			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/aureport "$destinationFolderPath"/
+			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/ausearch "$destinationFolderPath"/
+			local binary
+			set +f
+			for binary in "$destinationFolderPath"/*
+			do
+				set -f
+				"$libertine_host"-strip "$binary"
+			done
+			set -f
+		}
+		
+	;;
+	
+	audit_userspace_control)
+		
+		variant=audit_userspace_control_filesystem
+
+		depends audit_userspace_libaudit
+		
+		depends build_musl_cross_make_host
+		build_needs "$libertine_host"-strip
+
+		depends busybox
+		
+		build_needs mkdir sed cp
+		libertine_compile_audit_userspace_control()
+		{
+			local outputSysrootFolderPath="$(libertine_public_outputInitramfsPath)"
+	
+			libertine_public_copy_filesystem "$(libertine_public_sourcePath)"/ "$outputSysrootFolderPath"/
+	
+			local destinationFolderPath="$outputSysrootFolderPath"/usr/sbin
+			mkdir -m 0755 -p "$destinationFolderPath"
+			
+			# Combines rules files
+			# Needs mktemp rm cat grep awk cmp cp chmod (optionally /usr/sbin/restorecon) /bin/ls
+			sed \
+				-e 's,#!/bin/bash,#!/usr/bin/env sh,g' \
+				-e 's,/sbin/auditctl,auditctl,g' \
+				-e 's,/bin/ls,ls,g' \
+				-e 's,/usr/sbin/restorecon,restorecon,g' \
+				"$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/augenrules >"$destinationFolderPath"/augenrules
+
+			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/auditctl "$destinationFolderPath"/
+			"$libertine_host"-strip "$destinationFolderPath"/auditctl
+			
+			local rulesFromPath="$(libertine_public_sourcePath audit_userspace)"/rules
+			local rulesToPath="$(libertine_public_outputInitramfsPath)"/etc/audit/rules.d
+			
+			sed -i -e "s,-w /sbin,-w /usr/sbin,g" "$rulesFromPath"/43-module-load.rules
+			sed -i -e "s,/usr/sbin/au,/usr/bin/au,g" "$rulesFromPath"/30-pci-dss-v31.rules
+			sed -i -e "s,#-e,-e,g" "$rulesFromPath"/99-finalize.rules
+			
+			# We do not install 20-dont-audit 31-priveleged 40-local-rules 70-einval
+			local ruleFile
+			for ruleFile in \
+				10-base-config 10-no-audit 11-loginuid 12-cont-fail 12-ignore-error \
+				21-no32bit \
+				30-nispom 30-pci-dss-v31 30-stig 32-power-abuse \
+				41-containers 42-injection 43-module-load \
+				71-networking \
+				99-finalize
+			do
+				cp "$rulesFromPath"/"$ruleFile".rules "$rulesToPath"
+			done
+	
+			cp -f "$(libertine_public_sourcePath)"/../audit_userspace_control.kernel-boot-command-line "$(libertine_public_outputKernelBootCommandLineFilePath)"
+		}
+		
+	;;
+	
+	audit_userspace_libaudit)
+		
+		variant=audit_userspace_libaudit_filesystem
+		
+		depends audit_userspace
+		
+		build_needs mkdir
+		libertine_compile_audit_userspace_libaudit()
+		{
+			# users of libaudit need to have a .conf file
+			libertine_public_copy_filesystem "$(libertine_public_sourcePath)"/ "$(libertine_public_outputInitramfsPath)"/
+			
+			# copy sysroot for builds depending on libaudit
+			local from="$(libertine_public_outputHostSysrootPath audit_userspace)"
+			local to="$(libertine_public_outputHostSysrootPath)"
+			libertine_public_copy "$from"/. "$to"/
+		}
+	;;
+	
+	audit_userspace)
+
+		variant=fork
+		
+		depends build_ccache
+		build_needs ccache
+
+		depends build_gnumake
+		build_needs make
+
+		depends build_slibtool
+		build_needs clibtool-static libtoolize realpath
+
+		depends build_perl
+		build_needs perl
+
+		depends build_autoconf
+		build_needs autoconf autoheader autom4te autoreconf autoscan autoupdate ifnames
+
+		depends build_automake
+		build_needs automake aclocal
+
+		depends build_gnum4
+		build_needs m4
+
+		depends build_musl_cross_make_build
+		build_needs "$libertine_build"-cc "$libertine_build"-gcc "$libertine_build"-ar "$libertine_build"-ld "$libertine_build"-ranlib
+
+		depends build_musl_cross_make_host
+		build_needs "$libertine_host"-cc "$libertine_host"-gcc "$libertine_host"-ar "$libertine_host"-ld "$libertine_host"-ranlib "$libertine_host"-strip
+
+		depends build_busybox
+		build_needs expr install sort ls sleep test echo
+
+		depends build_netbsd_src_fmt
+
+		build_needs fmt cp sed mv cat
+
+		libertine_compile_audit_userspace()
+		{
+			pushd "$(libertine_public_sourcePath)"
+				
+				libertine_public_autoconf_adjustConfigureAcToRemoveGnuTextCruftBeforeAutoconf
+				
+				sed -i -e 's/fmt -w 50/fmt -w 66/g' configure.ac
+		
+				# Remove -fPIC -DPIC which don't work for static libraries
+				# Whether we use pie or not is controlled by the cross-gcc having been compiled with --enable-default-pie
+				sed -i -e 's/-fPIC /-fPIE /g' -e 's/-DPIC /-DPIE /g' \
+					auparse/Makefile.am \
+					bindings/python/python2/Makefile.am \
+					bindings/python/python3/Makefile.am \
+					bindings/swig/python/Makefile.am \
+					bindings/swig/python3/Makefile.am \
+					lib/Makefile.am \
+					src/libev/Makefile.am
+		
+				sed -i -e 's/-pie -Wl,-z,relro -Wl,-z,now//g' \
+					audisp/plugins/remote/Makefile.am \
+					audisp/Makefile.am
+		
+				# Multiple definitions of the SAME clear_config due to a visibility pragma not working when static linking
+				sed -i \
+					-e 's/-pie -Wl,-z,relro -Wl,-z,now/-Wl,-z,muldefs/g' \
+					-e 's/aureport_LDADD = /aureport_LDFLAGS = -Wl,-z,muldefs\naureport_LDADD = /g' \
+					-e 's/ausearch_LDADD = /ausearch_LDFLAGS = -Wl,-z,muldefs\nausearch_LDADD = /g' \
+					src/Makefile.am
+		
+				sed -i -e 's/^AM_CFLAGS/AM_LDFLAGS = -Wl,-z,muldefs\nAM_CFLAGS/g' tools/auvirt/Makefile.am
+		
+				libtoolize --install --force --verbose
+				autoreconf --install --force --verbose
+				cp INSTALL.tmp INSTALL
+						
+				# Musl fixes
+		
+				mv auparse/interpret.c auparse/interpret.c.orig
+				{
+					cat ../rawmemchr.c
+					printf '\n'
+					cat auparse/interpret.c.orig
+				} >auparse/interpret.c
+		
+				sed -i -e 's,#include <stdio.h>,#include <stdio.h>\n#include <sys/select.h>,g' src/auditctl.c
+		
+				sed -i -e 's,#include <stdio.h>,#include <stdio.h>\n#include <limits.h>\n#include <sys/uio.h>,g' audisp/audispd.c
+		
+				sed -i -e 's,#include <string.h>,#include <string.h>\n#include <sys/uio.h>,g' audisp/audispd-builtins.c
+				
+				set --
+				case "$libertine_architecture" in
+					
+					arm*)
+						set -- "$@" --with-arm
+					;;
+					
+					aarch64)
+						set -- "$@" --with-aarch64
+					;;
+					
+				esac
+				
+				libertine_public_autoconf_modernAutoconfConfigure \
+					"$@" \
+					--disable-shared \
+					--disable-listener \
+					--disable-zos-remote \
+					--enable-gssapi-krb5=no \
+					--enable-systemd=no \
+					--without-python \
+					--without-python3 \
+					--without-golang \
+					--without-debug \
+					--with-apparmor \
+					--without-libwrap \
+					--with-libcap-ng=no
+		
+				libertine_public_autoconf_removePoToRemoveGnuTextCruftBeforeMake
+		
+				libertine_public_make AM_V_CC='' CC="${libertine_host}-cc $(libertine_public_hostCCompilerFlags)"
+				
+				libertine_public_make AM_V_CC='' CC="${libertine_host}-cc $(libertine_public_hostCCompilerFlags)" DESTDIR="$(libertine_public_outputHostSysrootPath)" install
+		
+			popd
+		}
+	
+	;;
+	
+esac
