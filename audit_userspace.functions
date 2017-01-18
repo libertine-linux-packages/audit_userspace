@@ -106,7 +106,7 @@ case "$package" in
 				-e 's,/bin/ls,ls,g' \
 				-e 's,/usr/sbin/restorecon,restorecon,g' \
 				"$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/augenrules >"$destinationFolderPath"/augenrules
-
+			
 			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/auditctl "$destinationFolderPath"/
 			"$libertine_host"-strip "$destinationFolderPath"/auditctl
 			
@@ -222,24 +222,29 @@ case "$package" in
 					src/Makefile.am
 		
 				sed -i -e 's/^AM_CFLAGS/AM_LDFLAGS = -Wl,-z,muldefs\nAM_CFLAGS/g' tools/auvirt/Makefile.am
-		
+				
+				# Fix for slibtool not using dependencies properly, it seems
+				# libaudit is a dependency of libauparse, so -laudit must come after -lauparse; -L order is irrelevant
+				sed -i \
+					-e 's;-lauparse;-lauparse -L${top_builddir}/lib/.libs -laudit;g' \
+					tools/aulast/Makefile.am \
+					tools/aulastlog/Makefile.am \
+					tools/auvirt/Makefile.am \
+				
 				libtoolize --install --force --verbose
 				autoreconf --install --force --verbose
 				cp INSTALL.tmp INSTALL
-						
+				
+				
 				# Musl fixes
-		
 				mv auparse/interpret.c auparse/interpret.c.orig
 				{
 					cat ../rawmemchr.c
 					printf '\n'
 					cat auparse/interpret.c.orig
 				} >auparse/interpret.c
-		
 				sed -i -e 's,#include <stdio.h>,#include <stdio.h>\n#include <sys/select.h>,g' src/auditctl.c
-		
 				sed -i -e 's,#include <stdio.h>,#include <stdio.h>\n#include <limits.h>\n#include <sys/uio.h>,g' audisp/audispd.c
-		
 				sed -i -e 's,#include <string.h>,#include <string.h>\n#include <sys/uio.h>,g' audisp/audispd-builtins.c
 				
 				set --
