@@ -6,13 +6,11 @@ init_audit_userspace_control_start()
 {
 	rm -rf /etc/audit/audit.rules
 	
-	augenrules --load
+	taskset 0x00000001 augenrules --load
 }
 
 init_audit_userspace_control_main()
 {
-	. /usr/lib/rc.functions
-	
 	if [ "$#" -eq 0 ]; then
 		local action='status'
 	else
