@@ -6,7 +6,7 @@ init_audit_userspace_control_start()
 {
 	rm -rf /etc/audit/audit.rules
 	
-	taskset 0x00000001 augenrules --load
+	/usr/bin/augenrules --load
 }
 
 init_audit_userspace_control_main()
