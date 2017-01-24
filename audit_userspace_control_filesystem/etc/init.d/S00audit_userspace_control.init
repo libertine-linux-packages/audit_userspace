@@ -4,9 +4,34 @@
 
 init_audit_userspace_control_start()
 {
-	rm -rf /etc/audit/audit.rules
+	# auditctl is a piece of s**t - it has the most broken commandline interface...
 	
-	/usr/bin/augenrules --load
+	# Remove all existing rules
+	auditctl -D 1>/dev/null
+	
+	# Increase the buffers to survive stress events on busy systems
+	auditctl -b 8192 1>/dev/null
+
+	# Set failure mode to syslog
+	auditctl -f 1 1>/dev/null
+
+	# This will cause auditctl to continue loading rules when it runs across a an unsupported or a rule with a syntax error however it will report an error at exit.
+	auditctl -c 1>/dev/null
+
+	# This will cause auditctl to continue loading rules when it runs across a an unsupported or a rule with a syntax error but exit with a success reason code.
+	auditctl -i 1>/dev/null
+	
+	# How long to wait in burst of events
+	auditctl --backlog_wait_time 0 1>/dev/null
+
+	# Make the loginuid immutable. This prevents tampering with the auid.
+	auditctl --loginuid-immutable 1>/dev/null
+	
+	# Load rules from file; will forcibly succeed so we can lock down rules in the next step (some rules better than no rules)
+	auditctl -R /etc/audit.rules 1>/dev/null || true
+	
+	# Make the configuration immutable; reboot is required to change the audit rules
+	auditctl -e 2 1>/dev/null
 }
 
 init_audit_userspace_control_main()

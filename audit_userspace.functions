@@ -88,7 +88,7 @@ case "$package" in
 
 		depends busybox
 		
-		build_needs mkdir sed cp
+		build_needs mkdir sed chmod cp
 		libertine_compile_audit_userspace_control()
 		{
 			local outputSysrootFolderPath="$(libertine_public_outputInitramfsPath)"
@@ -97,38 +97,10 @@ case "$package" in
 	
 			local destinationFolderPath="$outputSysrootFolderPath"/usr/sbin
 			mkdir -m 0755 -p "$destinationFolderPath"
-			
-			# Combines rules files
-			# Needs mktemp rm cat grep awk cmp cp chmod (optionally /usr/sbin/restorecon) /bin/ls
-			sed \
-				-e 's,#!/bin/bash,#!/usr/bin/env sh,g' \
-				-e 's,/sbin/auditctl,auditctl,g' \
-				-e 's,/bin/ls,ls,g' \
-				-e 's,/usr/sbin/restorecon,restorecon,g' \
-				"$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/augenrules >"$destinationFolderPath"/augenrules
-			
+						
 			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/auditctl "$destinationFolderPath"/
 			"$libertine_host"-strip "$destinationFolderPath"/auditctl
 			
-			local rulesFromPath="$(libertine_public_packagePath audit_userspace)"/fork/rules
-			local rulesToPath="$(libertine_public_outputInitramfsPath)"/etc/audit/rules.d
-			
-			sed -e "s,-w /sbin,-w /usr/sbin,g" "$rulesFromPath"/43-module-load.rules >"$rulesToPath"/43-module-load.rules
-			sed -e "s,/usr/sbin/au,/usr/bin/au,g" "$rulesFromPath"/30-pci-dss-v31.rules >"$rulesToPath"/30-pci-dss-v31.rules
-			sed -e "s,#-e,-e,g" "$rulesFromPath"/99-finalize.rules >"$rulesToPath"/99-finalize.rules
-			
-			# We do not install 20-dont-audit 31-priveleged 40-local-rules 70-einval
-			local ruleFile
-			for ruleFile in \
-				10-base-config 10-no-audit 11-loginuid 12-cont-fail 12-ignore-error \
-				21-no32bit \
-				30-nispom 30-stig 32-power-abuse \
-				41-containers 42-injection \
-				71-networking
-			do
-				cp "$rulesFromPath"/"$ruleFile".rules "$rulesToPath"
-			done
-	
 			cp -f "$(libertine_public_sourcePath)"/../audit_userspace_control.kernel-boot-command-line "$(libertine_public_outputKernelBootCommandLineFilePath)"
 		}
 		

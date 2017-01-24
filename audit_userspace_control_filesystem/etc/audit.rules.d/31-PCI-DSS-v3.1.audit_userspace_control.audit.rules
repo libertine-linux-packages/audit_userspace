@@ -1,0 +1,62 @@
+## The purpose of these rules is to meet the PCI DSS v3.1 auditing requirements
+# These rules assume 30-NISPOM-Chapter-8 are used
+
+
+# 10.1 Implement audit trails to link all access to individual user (implicitly met)
+
+# 10.2.1 Implement audit trails to detect user accesses to cardholder data
+## This would require a watch on the database that excludes the daemon's access.
+# -a always,exit -F path=/path/to/db -F auid>=1000 -F auid!=unset -F uid!=daemon-acct -F perm=r -F key=10.2.1-cardholder-access
+
+# 10.2.2 Log administrative action.
+## All root accounts should be recorded
+
+# 10.2.3 Access to all audit trails.
+
+# 10.2.4 Invalid logical access attempts.
+
+# 10.2.5.a Use of I&A mechanisms is logged.
+
+# 10.2.5.b All elevation of privileges is logged
+-a always,exit -F arch=b64 -S setuid -Fa0=0 -F exe=/usr/bin/su -F key=10.2.5.b-elevated-privs-session
+-a always,exit -F arch=b32 -S setuid -Fa0=0 -F exe=/usr/bin/su -F key=10.2.5.b-elevated-privs-session
+-a always,exit -F arch=b64 -S setresuid -F a0=0 -F exe=/usr/bin/sudo -F key=10.2.5.b-elevated-privs-session
+-a always,exit -F arch=b32 -S setresuid -F a0=0 -F exe=/usr/bin/sudo -F key=10.2.5.b-elevated-privs-session
+-a always,exit -F arch=b64 -S execve -C uid!=euid -F euid=0 -F key=10.2.5.b-elevated-privs-setuid
+-a always,exit -F arch=b32 -S execve -C uid!=euid -F euid=0 -F key=10.2.5.b-elevated-privs-setuid
+
+# 10.2.5.c All changes, additions, or deletions to any account are logged
+-a always,exit -F path=/etc/group -F perm=wa -F key=10.2.5.c-accounts
+-a always,exit -F path=/etc/passwd -F perm=wa -F key=10.2.5.c-accounts
+-a always,exit -F path=/etc/gshadow -F perm=wa -F key=10.2.5.c-accounts
+-a always,exit -F path=/etc/shadow -F perm=wa -F key=10.2.5.c-accounts
+
+# 10.2.6 Verify the following are logged:
+# Initialization of audit logs
+# Stopping or pausing of audit logs.
+# These are handled implicitly by auditd
+
+# 10.2.7 Creation and deletion of system-level objects (not an audit requirement)
+
+# 10.3 Record at least the following audit trail entries
+# 10.3.1 through 10.3.6 are implicitly met by the audit system.
+
+# 10.4.2b Time data is protected.
+-a always,exit -F arch=b32 -S adjtimex,settimeofday,stime -F key=10.4.2b-time-change
+-a always,exit -F arch=b64 -S adjtimex,settimeofday -F key=10.4.2b-time-change
+-a always,exit -F arch=b32 -S clock_settime -F a0=0x0 -F key=10.4.2b-time-change
+-a always,exit -F arch=b64 -S clock_settime -F a0=0x0 -F key=10.4.2b-time-change
+-w /etc/localtime -p wa -k 10.4.2b-time-change
+
+# 10.5 Secure audit trails so they cannot be altered. (permissions do this)
+
+# 10.5.1 Limit viewing of audit trails to those with a job-related need. (permissions do this)
+
+# 10.5.2 Protect audit trail files from unauthorized modifications.
+
+# 10.5.3 Promptly back up audit trail files to a centralized log server (using syslog this happens)
+
+# 10.5.4 Write logs for external-facing technologies onto a secure, centralized, internal log serve
+
+# 10.5.5 Use file-integrity monitoring or change-detection software on logs
+## More work required here

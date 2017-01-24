@@ -1,0 +1,7 @@
+# Watch for container creation
+-a always,exit -F arch=b32 -S clone -F a0&0x7C020000 -F key=container-create
+-a always,exit -F arch=b64 -S clone -F a0&0x7C020000 -F key=container-create
+
+# Watch for containers that may change their configuration
+-a always,exit -F arch=b32 -S unshare,setns -F key=container-config
+-a always,exit -F arch=b64 -S unshare,setns -F key=container-config

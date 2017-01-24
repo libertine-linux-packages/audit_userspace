@@ -1,0 +1,2 @@
+# Warn if 32-bit syscalls used on a 64-bit platform (will break on arm)
+-a always,exit -F arch=b32 -S all -F key=32bit-abi

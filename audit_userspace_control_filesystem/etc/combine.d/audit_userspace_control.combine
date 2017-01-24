@@ -1,1 +1,1 @@
-/etc/audit rules 0600 nocombine
+/etc audit.rules 0400 nosort

@@ -1,0 +1,64 @@
+# The purpose of these rules is to meet the STIG auditing requirements
+# These rules assume 30-NISPOM-Chapter-8 and 31-PCI-DSS-v3.1 are used
+
+# (GEN002880: CAT II) The IAO will ensure the auditing software can record the following for each audit event:
+#- Date and time of the event
+#- Userid that initiated the event
+#- Type of event 
+#- Success or failure of the event
+#- For I&A events, the origin of the request (e.g., terminal ID) 
+#- For events that introduce an object into a user’s address space, and for object deletion events, the name of the object, and in MLS systems, the object’s security level.
+## See 30-NISPOM-Chapter-8
+
+# Things that affect identity
+## See 30-NISPOM-Chapter-8
+
+# Things that could affect system locale
+## See 30-NISPOM-Chapter-8
+
+
+# (GEN002900: CAT III) The IAO will ensure audit files are retained at least one year; systems containing SAMI will be retained for five years.
+
+# (GEN002920: CAT III) The IAO will ensure audit files are backed up no less than weekly onto a different system than the system being audited or backup media.
+
+# (GEN002700: CAT I) (Previously – G095) The SA will ensure audit data files have permissions of 640, or more restrictive.
+## Done automatically by auditd
+
+# (GEN002720-GEN002840: CAT II) (Previously – G100-G106) The SA will configure the auditing system to audit the following events for all users and root:
+
+
+#- Process and session initiation (unsuccessful and successful)
+
+#- Discretionary access control permission modification (unsuccessful and successful use of chown/chmod)
+-a always,exit -F arch=b32 -S chmod,fchmod,fchmodat -F auid>=1000 -F auid!=4294967295 -F key=perm_mod
+-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat -F auid>=1000 -F auid!=4294967295 -F key=perm_mod
+-a always,exit -F arch=b32 -S lchown,fchown,chown,fchownat -F auid>=1000 -F auid!=4294967295 -F key=perm_mod
+-a always,exit -F arch=b64 -S chown,fchown,lchown,fchownat -F auid>=1000 -F auid!=4294967295 -F key=perm_mod
+-a always,exit -F arch=b32 -S setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F auid>=1000 -F auid!=4294967295 -F key=perm_mod
+-a always,exit -F arch=b64 -S setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F auid>=1000 -F auid!=4294967295 -F key=perm_mod
+
+#- Unauthorized access attempts to files (unsuccessful) 
+-a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+-a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-a always,exit -F arch=b64 -S open,truncate,ftruncate,creat,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+-a always,exit -F arch=b64 -S open,truncate,ftruncate,creat,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+
+#- Use of print command (unsuccessful and successful) 
+
+#- Export to media (successful)
+-a always,exit -F arch=b32 -S mount -F auid>=10000 -F auid!=4294967295 -F key=export
+-a always,exit -F arch=b64 -S mount -F auid>=10000 -F auid!=4294967295 -F key=export
+
+#- System startup and shutdown (unsuccessful and successful)
+
+#- Files and programs deleted by the user (successful and unsuccessful)
+-a always,exit -F arch=b32 -S unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=4294967295 -F key=delete
+-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=4294967295 -F key=delete
+
+#- All system administration actions 
+#- All security personnel actions
+-w /etc/sudoers -p wa -k actions
+-w /etc/sudoers.d/ -p wa -k actions
+
+# (GEN002860: CAT II) (Previously – G674) The SA and/or IAO will ensure old audit logs are closed and new audit logs are started daily.
+## Not a function of auditd
