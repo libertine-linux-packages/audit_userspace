@@ -20,7 +20,7 @@ case "$package" in
 			mkdir -m 0755 -p "$destinationFolderPath"
 
 			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/auditd "$destinationFolderPath"/
-			"$libertine_host"-strip "$destinationFolderPath"/auditd
+			libertine_public_stripAndSecureBinary "$destinationFolderPath"/auditd
 			
 			# auditspd and audisp-remote are not used at this time
 		}
@@ -43,7 +43,7 @@ case "$package" in
 			mkdir -m 0755 -p "$destinationFolderPath"
 			
 			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/autrace "$destinationFolderPath"/
-			"$libertine_host"-strip "$destinationFolderPath"/autrace
+			libertine_public_stripAndSecureBinary "$destinationFolderPath"/autrace
 		}
 	;;
 	
@@ -70,7 +70,7 @@ case "$package" in
 			for binary in "$destinationFolderPath"/*
 			do
 				set -f
-				"$libertine_host"-strip "$binary"
+				libertine_public_stripAndSecureBinary "$binary"
 			done
 			set -f
 		}
@@ -97,9 +97,10 @@ case "$package" in
 	
 			local destinationFolderPath="$outputSysrootFolderPath"/usr/sbin
 			mkdir -m 0755 -p "$destinationFolderPath"
+			
 						
 			libertine_public_copy "$(libertine_public_outputHostSysrootPath audit_userspace)"/usr/sbin/auditctl "$destinationFolderPath"/
-			"$libertine_host"-strip "$destinationFolderPath"/auditctl
+			libertine_public_stripAndSecureBinary "$destinationFolderPath"/auditctl
 			
 			cp -f "$(libertine_public_sourcePath)"/../audit_userspace_control.kernel-boot-command-line "$(libertine_public_outputKernelBootCommandLineFilePath)"
 		}
