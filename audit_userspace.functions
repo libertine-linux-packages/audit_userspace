@@ -12,6 +12,9 @@ case "$package" in
 	
 		depends build_musl_cross_make_host
 		build_needs "$libertine_host"-strip
+
+		depends build_paxctl
+		build_needs paxctl
 		
 		build_needs mkdir
 		libertine_compile_audit_userspace_daemon()
@@ -35,6 +38,9 @@ case "$package" in
 		
 		depends build_musl_cross_make_host
 		build_needs "$libertine_host"-strip
+
+		depends build_paxctl
+		build_needs paxctl
 		
 		build_needs mkdir
 		libertine_compile_audit_userspace_trace()
@@ -55,6 +61,9 @@ case "$package" in
 		
 		depends build_musl_cross_make_host
 		build_needs "$libertine_host"-strip
+
+		depends build_paxctl
+		build_needs paxctl
 		
 		build_needs mkdir
 		libertine_compile_audit_userspace_utilities()
@@ -85,6 +94,9 @@ case "$package" in
 		
 		depends build_musl_cross_make_host
 		build_needs "$libertine_host"-strip
+
+		depends build_paxctl
+		build_needs paxctl
 
 		depends busybox
 		
