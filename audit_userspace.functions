@@ -2,6 +2,8 @@
 # Copyright © 2016 The developers of libertine linux's package audit_userspace. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/libertine-linux-packages/audit_userspace/master/COPYRIGHT.
 
 
+depends build_busybox
+
 case "$package" in
 
 	audit_userspace_daemon)
