@@ -4,6 +4,8 @@
 
 depends build_busybox
 
+build_needs basename
+
 case "$package" in
 
 	audit_userspace_daemon)
